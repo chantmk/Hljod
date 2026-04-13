@@ -4,7 +4,7 @@ export interface LightColor {
   b: number;
 }
 
-export interface Light {
+export interface DeviceState {
   ip: string;
   state: boolean;
   brightness: number;
@@ -16,7 +16,8 @@ export interface Light {
 export interface Room {
   id: string;
   name: string;
-  lights: Light[];
+  type: string;
+  devices: DeviceState[];
 }
 
 export interface RoomListItem {

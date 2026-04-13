@@ -74,7 +74,7 @@ export default function App() {
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-zinc-100">Rooms</h2>
           <p className="text-sm text-zinc-500 mt-1">
-            Control your WizLights · Auto-refreshes every 30s
+            Control your smart home devices · Auto-refreshes every 30s
           </p>
         </div>
 
@@ -95,7 +95,7 @@ export default function App() {
         </div>
 
         <p className="text-center text-xs text-zinc-700 mt-10">
-          Hljod · HermesScrypt light controller
+          Hljod · HermesScrypt smart home controller
         </p>
       </main>
 

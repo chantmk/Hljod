@@ -1,10 +1,7 @@
 import React, { useCallback } from "react";
 import type { Room } from "../api/types";
 import { useRoomControl } from "../hooks/useRoomControl";
-import { BrightnessSlider } from "./BrightnessSlider";
-import { TemperatureSlider } from "./TemperatureSlider";
-import { ColorPicker } from "./ColorPicker";
-import { SceneSelector } from "./SceneSelector";
+import { WizLightControls } from "./WizLightControls";
 
 interface RoomCardProps {
   roomId: string;
@@ -61,14 +58,9 @@ function getRoomIcon(roomId: string): React.ReactNode {
 }
 
 export function RoomCard({ roomId, room, loading, error, onRefresh }: RoomCardProps) {
-  const { pending, error: controlError, turnOn, turnOff, setBrightness, setColor, setTemperature, setScene, clearError } = useRoomControl(roomId, onRefresh);
+  const { pending, error: controlError, turnOn, turnOff, clearError } = useRoomControl(roomId, onRefresh);
 
-  // Aggregate light state: treat room as on if any light is on
-  const isOn = room ? room.lights.some((l) => l.state) : false;
-  const brightness = room?.lights[0]?.brightness ?? 50;
-  const temperature = room?.lights[0]?.temperature ?? 4000;
-  const color = room?.lights[0]?.color ?? { r: 255, g: 255, b: 255 };
-
+  const isOn = room ? room.devices.some((d) => d.state) : false;
   const isDisabled = loading || pending || !room;
 
   const handleToggle = useCallback(() => {
@@ -116,7 +108,7 @@ export function RoomCard({ roomId, room, loading, error, onRefresh }: RoomCardPr
               </span>
               {room && (
                 <span className="text-xs text-zinc-600 ml-1">
-                  · {room.lights.length} light{room.lights.length !== 1 ? "s" : ""}
+                  · {room.devices.length} device{room.devices.length !== 1 ? "s" : ""}
                 </span>
               )}
             </div>
@@ -183,78 +175,25 @@ export function RoomCard({ roomId, room, loading, error, onRefresh }: RoomCardPr
           </div>
         )}
 
-        {/* Actual controls */}
-        {room && (
-          <>
-            <BrightnessSlider
-              value={brightness}
-              disabled={isDisabled || !isOn}
-              onChange={setBrightness}
-            />
-
-            <div className="border-t border-zinc-800" />
-
-            <TemperatureSlider
-              value={temperature}
-              disabled={isDisabled || !isOn}
-              onChange={setTemperature}
-            />
-
-            <div className="border-t border-zinc-800" />
-
-            <ColorPicker
-              currentColor={color}
-              disabled={isDisabled || !isOn}
-              onColorChange={setColor}
-            />
-
-            <div className="border-t border-zinc-800" />
-
-            <SceneSelector
-              disabled={isDisabled || !isOn}
-              onSceneSelect={setScene}
-            />
-
-            {/* Light state details */}
-            {room.lights.length > 0 && (
-              <>
-                <div className="border-t border-zinc-800" />
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider">
-                    Light Details
-                  </p>
-                  <div className="grid gap-1.5">
-                    {room.lights.map((light) => (
-                      <div
-                        key={light.ip}
-                        className="flex items-center justify-between text-xs bg-zinc-800/50 rounded-lg px-3 py-2"
-                      >
-                        <span className="font-mono text-zinc-500">{light.ip}</span>
-                        <div className="flex items-center gap-3">
-                          <span className={light.state ? "text-emerald-400" : "text-zinc-600"}>
-                            {light.state ? "On" : "Off"}
-                          </span>
-                          {light.brightness != null && (
-                            <span className="text-zinc-500">{light.brightness}%</span>
-                          )}
-                          {light.mode && (
-                            <span className="text-zinc-600 capitalize">{light.mode}</span>
-                          )}
-                          <div
-                            className="w-3 h-3 rounded-full border border-zinc-600"
-                            style={{
-                              backgroundColor: `rgb(${light.color.r},${light.color.g},${light.color.b})`,
-                            }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
-          </>
-        )}
+        {/* Device-type-specific controls */}
+        {room && (() => {
+          switch (room.type) {
+            case "wizlight":
+              return (
+                <WizLightControls
+                  roomId={roomId}
+                  devices={room.devices}
+                  onRefresh={onRefresh}
+                />
+              );
+            default:
+              return (
+                <p className="text-zinc-500 text-sm">
+                  Device type "{room.type}" has no controls yet.
+                </p>
+              );
+          }
+        })()}
       </div>
     </div>
   );
