@@ -6,6 +6,8 @@ import type {
   ColorPayload,
   TemperaturePayload,
   ScenePayload,
+  DiscoverResponse,
+  ConfigRoom,
 } from "./types";
 
 const STORAGE_KEY = "hljod_api_url";
@@ -107,6 +109,28 @@ export const api = {
     return request<void>(`/api/v1/rooms/${roomId}/scene`, {
       method: "POST",
       body: JSON.stringify(payload),
+    });
+  },
+
+  discover(type = "wizlight"): Promise<DiscoverResponse> {
+    return request<DiscoverResponse>(`/api/v1/lights/discover?type=${encodeURIComponent(type)}`);
+  },
+
+  getConfigRooms(): Promise<ConfigRoom[]> {
+    return request<ConfigRoom[]>("/api/v1/config/rooms");
+  },
+
+  addDevice(roomId: string, ip: string): Promise<ConfigRoom> {
+    return request<ConfigRoom>(`/api/v1/config/rooms/${roomId}/devices`, {
+      method: "POST",
+      body: JSON.stringify({ ip }),
+    });
+  },
+
+  removeDevice(roomId: string, ip: string): Promise<ConfigRoom> {
+    return request<ConfigRoom>(`/api/v1/config/rooms/${roomId}/devices`, {
+      method: "DELETE",
+      body: JSON.stringify({ ip }),
     });
   },
 };

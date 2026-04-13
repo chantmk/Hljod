@@ -3,6 +3,7 @@ import { useRooms } from "./hooks/useRooms";
 import { RoomCard } from "./components/RoomCard";
 import { ConnectionStatus } from "./components/ConnectionStatus";
 import { SettingsModal } from "./components/SettingsModal";
+import { DiscoveryModal } from "./components/DiscoveryModal";
 import { getApiBaseUrl } from "./api/client";
 
 const ROOM_IDS = ["office", "gaming_room"];
@@ -10,6 +11,7 @@ const ROOM_IDS = ["office", "gaming_room"];
 export default function App() {
   const { rooms, refresh, isOnline } = useRooms();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [discoveryOpen, setDiscoveryOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
@@ -45,6 +47,28 @@ export default function App() {
 
           <div className="flex items-center gap-2">
             <ConnectionStatus isOnline={isOnline} onRefresh={refresh} />
+            <button
+              onClick={() => setDiscoveryOpen(true)}
+              title="Discover Devices"
+              className="p-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-100 transition-colors"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 2a10 10 0 1 0 10 10" />
+                <path d="M12 6a6 6 0 1 0 6 6" />
+                <path d="M12 10a2 2 0 1 0 2 2" />
+                <line x1="12" y1="12" x2="22" y2="2" />
+              </svg>
+            </button>
             <button
               onClick={() => setSettingsOpen(true)}
               title="Settings"
@@ -103,6 +127,12 @@ export default function App() {
         isOpen={settingsOpen}
         onClose={() => setSettingsOpen(false)}
         onSave={refresh}
+      />
+
+      <DiscoveryModal
+        isOpen={discoveryOpen}
+        onClose={() => setDiscoveryOpen(false)}
+        onRefresh={refresh}
       />
     </div>
   );

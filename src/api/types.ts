@@ -52,6 +52,24 @@ export interface ApiError {
   status?: number;
 }
 
+export interface DiscoveredDevice {
+  ip: string;
+  mac: string | null;
+  module_name: string | null;
+  firmware_version: string | null;
+}
+
+export interface DiscoverResponse {
+  discovered: DiscoveredDevice[];
+}
+
+export interface ConfigRoom {
+  room_id: string;
+  name: string;
+  device_type: string;
+  devices: string[]; // list of IP strings
+}
+
 export interface Scene {
   id: number;
   name: string;
