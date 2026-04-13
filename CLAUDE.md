@@ -2,6 +2,12 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Working style
+
+- **Always propose a plan first.** Before writing any code, outline the approach and list the files that will be changed. Ask any clarifying questions needed.
+- **Wait for confirmation.** Do not write or edit any code until the user has explicitly approved the plan.
+- **Commits allowed, pushes are not.** You may create git commits after completing work, but never run `git push` — the user handles all pushes.
+
 ## What this is
 
 Hljod is a React + TypeScript SPA (Vite + Tailwind CSS) that provides visualization and control for smart home devices managed by HermesScrypt. It is served from an nginx container on a NAS. The first use case is light control (WizLight); the component architecture is designed to accommodate additional device types and rooms.
