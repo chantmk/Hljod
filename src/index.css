@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-zinc-950 text-zinc-100;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Custom range input styling */
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 2px solid #52525b;
+    cursor: pointer;
+    margin-top: -7px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+  }
+
+  input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  }
+
+  input[type="range"]::-webkit-slider-runnable-track {
+    height: 2px;
+    border-radius: 9999px;
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 2px solid #52525b;
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+    transition: transform 0.1s ease;
+  }
+
+  input[type="range"]::-moz-range-thumb:hover {
+    transform: scale(1.15);
+  }
+
+  input[type="range"]:disabled::-webkit-slider-thumb {
+    cursor: not-allowed;
+    opacity: 0.4;
+  }
+
+  input[type="range"]:disabled::-moz-range-thumb {
+    cursor: not-allowed;
+    opacity: 0.4;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #3f3f46;
+    border-radius: 9999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #52525b;
+  }
+}
+
+@layer utilities {
+  .animate-spin-slow {
+    animation: spin 2s linear infinite;
+  }
+}
