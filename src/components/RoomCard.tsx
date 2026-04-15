@@ -1,5 +1,6 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import type { RoomState, DeviceState } from "../api/types";
+import { api } from "../api/client";
 import { useRoomControl } from "../hooks/useRoomControl";
 import { RoomDetailModal } from "./RoomDetailModal";
 
@@ -51,14 +52,49 @@ function ExpandIcon() {
   );
 }
 
-function DeviceRow({ device }: { device: DeviceState }) {
+// ---------------------------------------------------------------------------
+// Inline name editor inside a device row
+// ---------------------------------------------------------------------------
+
+interface DeviceRowProps {
+  device: DeviceState;
+  isEditing: boolean;
+  saving: boolean;
+  onStartEdit: () => void;
+  onSubmitName: (name: string) => void;
+  onCancelEdit: () => void;
+}
+
+function DeviceRow({
+  device,
+  isEditing,
+  saving,
+  onStartEdit,
+  onSubmitName,
+  onCancelEdit,
+}: DeviceRowProps) {
+  const [draft, setDraft] = useState(device.display_name ?? "");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Reset draft when editing starts
+  useEffect(() => {
+    if (isEditing) {
+      setDraft(device.display_name ?? "");
+      setTimeout(() => inputRef.current?.select(), 0);
+    }
+  }, [isEditing, device.display_name]);
+
   const hasColor = device.r != null || device.g != null || device.b != null;
   const colorBg = hasColor
     ? `rgb(${device.r ?? 255},${device.g ?? 255},${device.b ?? 255})`
     : undefined;
 
+  const label = device.display_name
+    ? device.display_name
+    : `(${device.device_id ?? device.ip})`;
+
   return (
-    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-zinc-800/40 text-xs">
+    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-zinc-800/40 text-xs group">
       {/* Status dot */}
       <span
         className={`shrink-0 w-1.5 h-1.5 rounded-full ${
@@ -70,37 +106,78 @@ function DeviceRow({ device }: { device: DeviceState }) {
         }`}
       />
 
-      {/* IP / device_id */}
-      <span className="flex-1 font-mono text-zinc-400 truncate min-w-0">
-        {device.device_id ?? device.ip}
-      </span>
+      {/* Name / inline editor */}
+      <div className="flex-1 min-w-0">
+        {isEditing ? (
+          <input
+            ref={inputRef}
+            type="text"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") onSubmitName(draft);
+              if (e.key === "Escape") onCancelEdit();
+            }}
+            onBlur={() => onSubmitName(draft)}
+            disabled={saving}
+            placeholder="Enter light name…"
+            className="w-full bg-zinc-700 border border-zinc-500 rounded px-1.5 py-0.5 text-xs text-zinc-200 focus:outline-none focus:border-zinc-400 disabled:opacity-50"
+          />
+        ) : (
+          <button
+            onClick={onStartEdit}
+            title="Click to rename"
+            className={`truncate text-left w-full transition-colors ${
+              device.display_name
+                ? "text-zinc-300 hover:text-zinc-100"
+                : "text-zinc-500 hover:text-zinc-400"
+            }`}
+          >
+            {label}
+          </button>
+        )}
+      </div>
+
+      {/* Saving spinner */}
+      {saving && (
+        <svg className="animate-spin shrink-0 text-zinc-500" xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+        </svg>
+      )}
 
       {/* Brightness */}
-      {device.brightness != null && device.is_on && (
+      {!isEditing && device.brightness != null && device.is_on && (
         <span className="text-zinc-500 shrink-0">{device.brightness}%</span>
       )}
 
       {/* Color swatch */}
-      {hasColor && device.is_on && (
+      {!isEditing && hasColor && device.is_on && (
         <span
           className="shrink-0 w-3 h-3 rounded-full border border-zinc-600"
           style={{ backgroundColor: colorBg }}
         />
       )}
 
-      {/* Unreachable badge */}
-      {!device.reachable && (
+      {!device.reachable && !isEditing && (
         <span className="text-zinc-600 shrink-0">—</span>
       )}
     </div>
   );
 }
 
+// ---------------------------------------------------------------------------
+// RoomCard
+// ---------------------------------------------------------------------------
+
 export function RoomCard({ room, loading, error, onRefresh }: RoomCardProps) {
   const roomId = room?.room_id ?? "";
   const { pending, error: controlError, turnOn, turnOff, clearError } =
     useRoomControl(roomId, onRefresh);
   const [detailOpen, setDetailOpen] = useState(false);
+
+  // Rename state: which IP is being edited, and which is currently saving
+  const [editingIp, setEditingIp] = useState<string | null>(null);
+  const [savingIp, setSavingIp] = useState<string | null>(null);
 
   const isOn = room ? room.devices.some((d) => d.is_on) : false;
   const isDisabled = loading || pending || !room;
@@ -109,6 +186,26 @@ export function RoomCard({ room, loading, error, onRefresh }: RoomCardProps) {
     if (isOn) turnOff();
     else turnOn();
   }, [isOn, turnOn, turnOff]);
+
+  const handleSubmitName = useCallback(
+    async (ip: string, name: string) => {
+      setEditingIp(null);
+      const trimmed = name.trim();
+      // Find current name to skip no-op saves
+      const current = room?.devices.find((d) => d.ip === ip)?.display_name ?? null;
+      const next = trimmed === "" ? null : trimmed;
+      if (next === current) return;
+
+      setSavingIp(ip);
+      try {
+        await api.setDeviceName(roomId, ip, next);
+        onRefresh();
+      } finally {
+        setSavingIp(null);
+      }
+    },
+    [roomId, room, onRefresh]
+  );
 
   const displayError = error ?? controlError;
 
@@ -127,7 +224,6 @@ export function RoomCard({ room, loading, error, onRefresh }: RoomCardProps) {
             isOn ? "bg-zinc-800/50" : "bg-zinc-800/20"
           }`}
         >
-          {/* Room name + status */}
           <div className="flex items-center gap-2 min-w-0">
             <span
               className={`shrink-0 w-2 h-2 rounded-full ${
@@ -150,9 +246,7 @@ export function RoomCard({ room, loading, error, onRefresh }: RoomCardProps) {
             )}
           </div>
 
-          {/* Actions */}
           <div className="flex items-center gap-1.5 shrink-0">
-            {/* Detail & Controls button */}
             <button
               onClick={() => setDetailOpen(true)}
               disabled={!room}
@@ -163,7 +257,6 @@ export function RoomCard({ room, loading, error, onRefresh }: RoomCardProps) {
               <span className="hidden sm:inline">Details</span>
             </button>
 
-            {/* Power toggle */}
             <button
               onClick={handleToggle}
               disabled={isDisabled}
@@ -194,10 +287,7 @@ export function RoomCard({ room, loading, error, onRefresh }: RoomCardProps) {
               <line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
             <p className="text-xs text-red-300 flex-1">{displayError}</p>
-            <button
-              onClick={clearError}
-              className="text-red-500 hover:text-red-300 transition-colors shrink-0"
-            >
+            <button onClick={clearError} className="text-red-500 hover:text-red-300 transition-colors shrink-0">
               <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
@@ -208,7 +298,6 @@ export function RoomCard({ room, loading, error, onRefresh }: RoomCardProps) {
 
         {/* Light list */}
         <div className="px-4 py-3 space-y-1.5 overflow-y-auto max-h-48">
-          {/* Loading skeleton */}
           {loading && !room && (
             <div className="space-y-1.5 animate-pulse">
               {[1, 2, 3].map((i) => (
@@ -217,20 +306,25 @@ export function RoomCard({ room, loading, error, onRefresh }: RoomCardProps) {
             </div>
           )}
 
-          {/* Empty state */}
           {room && room.devices.length === 0 && (
             <p className="text-xs text-zinc-600 py-2 text-center">No lights configured</p>
           )}
 
-          {/* Device rows */}
           {room &&
             room.devices.map((device) => (
-              <DeviceRow key={device.ip} device={device} />
+              <DeviceRow
+                key={device.ip}
+                device={device}
+                isEditing={editingIp === device.ip}
+                saving={savingIp === device.ip}
+                onStartEdit={() => setEditingIp(device.ip)}
+                onSubmitName={(name) => handleSubmitName(device.ip, name)}
+                onCancelEdit={() => setEditingIp(null)}
+              />
             ))}
         </div>
       </div>
 
-      {/* Detail modal */}
       {detailOpen && room && (
         <RoomDetailModal
           room={room}

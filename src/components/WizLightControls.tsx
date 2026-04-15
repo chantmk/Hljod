@@ -72,7 +72,9 @@ export function WizLightControls({ roomId, devices, onRefresh }: WizLightControl
                   key={device.ip}
                   className="flex items-center justify-between text-xs bg-zinc-800/50 rounded-lg px-3 py-2"
                 >
-                  <span className="font-mono text-zinc-500">{device.ip}</span>
+                  <span className="text-zinc-300 truncate max-w-[140px]">
+                    {device.display_name ?? <span className="font-mono text-zinc-500">{device.ip}</span>}
+                  </span>
                   <div className="flex items-center gap-3">
                     {!device.reachable ? (
                       <span className="text-zinc-600">Unreachable</span>

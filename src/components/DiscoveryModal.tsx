@@ -314,10 +314,10 @@ export function DiscoveryModal({ isOpen, onClose, onRefresh }: DiscoveryModalPro
               </p>
               {discovered.map((device) => {
                 const assignedRooms = configRooms.filter((r) =>
-                  r.devices.includes(device.ip)
+                  r.devices.some((d) => d.ip === device.ip)
                 );
                 const unassignedRooms = configRooms.filter(
-                  (r) => !r.devices.includes(device.ip)
+                  (r) => !r.devices.some((d) => d.ip === device.ip)
                 );
 
                 return (

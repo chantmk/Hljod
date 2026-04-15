@@ -11,6 +11,7 @@ import type {
   ScenePayload,
   DiscoverResponse,
   ConfigRoom,
+  DeviceEntry,
 } from "./types";
 
 const STORAGE_KEY = "hljod_api_url";
@@ -175,5 +176,15 @@ export const api = {
       method: "DELETE",
       body: JSON.stringify({ ip }),
     });
+  },
+
+  setDeviceName(roomId: string, ip: string, name: string | null): Promise<ConfigRoom> {
+    return request<ConfigRoom>(
+      `/api/v1/config/rooms/${roomId}/devices/${encodeURIComponent(ip)}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ name }),
+      }
+    );
   },
 };

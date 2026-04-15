@@ -6,6 +6,7 @@ export interface LightColor {
 
 export interface DeviceState {
   device_id?: string;
+  display_name?: string | null;
   ip: string;
   is_on?: boolean;
   brightness?: number;
@@ -105,11 +106,16 @@ export interface DiscoverResponse {
   discovered: DiscoveredDevice[];
 }
 
+export interface DeviceEntry {
+  ip: string;
+  name: string | null;
+}
+
 export interface ConfigRoom {
   room_id: string;
   name: string;
   device_type: string;
-  devices: string[];
+  devices: DeviceEntry[];
 }
 
 export interface Scene {
