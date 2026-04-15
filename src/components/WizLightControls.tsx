@@ -15,10 +15,15 @@ export function WizLightControls({ roomId, devices, onRefresh }: WizLightControl
   const { pending, setBrightness, setColor, setTemperature, setScene } =
     useRoomControl(roomId, onRefresh);
 
-  const isOn = devices.some((d) => d.state);
-  const brightness = devices[0]?.brightness ?? 50;
-  const temperature = devices[0]?.temperature ?? 4000;
-  const color = devices[0]?.color ?? { r: 255, g: 255, b: 255 };
+  const isOn = devices.some((d) => d.is_on);
+  const first = devices[0];
+  const brightness = first?.brightness ?? 50;
+  const colorTemp = first?.color_temp ?? 4000;
+  const color = {
+    r: first?.r ?? 255,
+    g: first?.g ?? 255,
+    b: first?.b ?? 255,
+  };
 
   const isDisabled = pending || devices.length === 0;
 
@@ -33,7 +38,7 @@ export function WizLightControls({ roomId, devices, onRefresh }: WizLightControl
       <div className="border-t border-zinc-800" />
 
       <TemperatureSlider
-        value={temperature}
+        value={colorTemp}
         disabled={isDisabled || !isOn}
         onChange={setTemperature}
       />
@@ -69,21 +74,24 @@ export function WizLightControls({ roomId, devices, onRefresh }: WizLightControl
                 >
                   <span className="font-mono text-zinc-500">{device.ip}</span>
                   <div className="flex items-center gap-3">
-                    <span className={device.state ? "text-emerald-400" : "text-zinc-600"}>
-                      {device.state ? "On" : "Off"}
-                    </span>
+                    {!device.reachable ? (
+                      <span className="text-zinc-600">Unreachable</span>
+                    ) : (
+                      <span className={device.is_on ? "text-emerald-400" : "text-zinc-600"}>
+                        {device.is_on ? "On" : "Off"}
+                      </span>
+                    )}
                     {device.brightness != null && (
                       <span className="text-zinc-500">{device.brightness}%</span>
                     )}
-                    {device.mode && (
-                      <span className="text-zinc-600 capitalize">{device.mode}</span>
+                    {(device.r != null || device.g != null || device.b != null) && (
+                      <div
+                        className="w-3 h-3 rounded-full border border-zinc-600"
+                        style={{
+                          backgroundColor: `rgb(${device.r ?? 255},${device.g ?? 255},${device.b ?? 255})`,
+                        }}
+                      />
                     )}
-                    <div
-                      className="w-3 h-3 rounded-full border border-zinc-600"
-                      style={{
-                        backgroundColor: `rgb(${device.color.r},${device.color.g},${device.color.b})`,
-                      }}
-                    />
                   </div>
                 </div>
               ))}

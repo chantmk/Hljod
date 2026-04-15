@@ -4,8 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Working style
 
-- **Always propose a plan first.** Before writing any code, outline the approach and list the files that will be changed. Ask any clarifying questions needed.
-- **Wait for confirmation.** Do not write or edit any code until the user has explicitly approved the plan.
+**IMPORTANT — follow this order on every coding task, no exceptions:**
+
+1. **Propose a plan first.** Before touching any file, write out: what you will change, which files are affected, and your approach. Ask any clarifying questions you need answered before starting.
+2. **Stop and wait.** Do not write, edit, or create any code or files until the user has explicitly said to proceed. A plan alone is not permission to start.
+3. **Then implement.** Only after receiving explicit confirmation (e.g. "go ahead", "looks good", "proceed") may you write code.
+
 - **Commits allowed, pushes are not.** You may create git commits after completing work, but never run `git push` — the user handles all pushes.
 
 ## What this is
@@ -42,14 +46,14 @@ src/
     SceneSelector.tsx     # dropdown of scenes (scene list defined in api/types.ts)
     ConnectionStatus.tsx  # pulsing dot + manual refresh button
     SettingsModal.tsx     # modal for editing API base URL, saved to localStorage
-  App.tsx          # layout, header, room grid; ROOM_IDS drives which rooms are rendered
+  App.tsx          # layout, header, auto-fill room grid; rooms fetched dynamically from HermesScrypt
   main.tsx
   index.css
 ```
 
 **API URL resolution** (in `api/client.ts`): `VITE_API_URL` build-time env var → `localStorage["hljod_api_url"]` → `http://nas.local:8000`. The settings modal writes to localStorage.
 
-**Room list:** `ROOM_IDS` in `App.tsx` must match the room keys in HermesScrypt's `config.json`. Update both when adding a room.
+**Room list:** Rooms are fetched dynamically via `GET /api/v1/rooms` on load and every 30 s. No hardcoded room IDs in the frontend — adding a room only requires editing HermesScrypt's `config.json`.
 
 **Slider commit pattern:** Brightness and temperature sliders track value in local state on every `onChange` but only call the API on `onMouseUp` / `onTouchEnd`. Do not change this — it prevents flooding the device UDP layer.
 
@@ -66,8 +70,7 @@ Keep device-specific logic inside its own component; `RoomCard` should remain a 
 
 ## Adding a new room
 
-1. Add the room key to `ROOM_IDS` in `App.tsx`.
-2. Add the room to HermesScrypt's `config.json` and reload.
+Edit HermesScrypt's `config.json` and hot-reload via `POST /api/v1/config/reload`. No frontend code change needed — rooms are discovered dynamically.
 
 ## Docker / nginx
 

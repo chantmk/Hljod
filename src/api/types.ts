@@ -5,28 +5,70 @@ export interface LightColor {
 }
 
 export interface DeviceState {
+  device_id?: string;
   ip: string;
-  state: boolean;
-  brightness: number;
-  color: LightColor;
-  temperature: number;
-  mode: string;
+  is_on?: boolean;
+  brightness?: number;
+  r?: number;
+  g?: number;
+  b?: number;
+  color_temp?: number;
+  scene_id?: number;
+  reachable: boolean;
+  error?: string;
 }
 
-export interface Room {
-  id: string;
+export interface RoomState {
+  room_id: string;
   name: string;
-  type: string;
   devices: DeviceState[];
 }
 
-export interface RoomListItem {
-  id: string;
-  name: string;
+export interface RoomsResponse {
+  rooms: RoomState[];
 }
 
 export interface HealthResponse {
   status: string;
+  version: string;
+  rooms_configured: number;
+}
+
+export interface ActionResponse {
+  room_id: string;
+  action: string;
+  results: DeviceState[];
+  success_count: number;
+  failure_count: number;
+}
+
+export interface LightInfo {
+  device_id: string;
+  ip: string;
+  room_id: string;
+  room_name: string;
+  device_type: string;
+  is_on?: boolean;
+  brightness?: number;
+  r?: number;
+  g?: number;
+  b?: number;
+  color_temp?: number;
+  scene_id?: number;
+  reachable: boolean;
+  error?: string;
+}
+
+export interface LightsListResponse {
+  lights: LightInfo[];
+}
+
+export interface LightActionResponse {
+  device_id: string;
+  ip: string;
+  room_id: string;
+  action: string;
+  result: DeviceState;
 }
 
 export interface BrightnessPayload {
@@ -67,7 +109,7 @@ export interface ConfigRoom {
   room_id: string;
   name: string;
   device_type: string;
-  devices: string[]; // list of IP strings
+  devices: string[];
 }
 
 export interface Scene {

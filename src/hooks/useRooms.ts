@@ -1,56 +1,71 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { api } from "../api/client";
-import type { Room } from "../api/types";
+import type { RoomState } from "../api/types";
 
 const REFRESH_INTERVAL_MS = 30_000;
-const KNOWN_ROOM_IDS = ["office", "gaming_room"];
 
-interface RoomState {
-  room: Room | null;
+interface RoomEntry {
+  room: RoomState | null;
   loading: boolean;
   error: string | null;
 }
 
 interface UseRoomsReturn {
-  rooms: Record<string, RoomState>;
+  rooms: Record<string, RoomEntry>;
+  roomIds: string[];
   refresh: () => void;
   isOnline: boolean;
 }
 
 export function useRooms(): UseRoomsReturn {
-  const [rooms, setRooms] = useState<Record<string, RoomState>>(() =>
-    Object.fromEntries(
-      KNOWN_ROOM_IDS.map((id) => [id, { room: null, loading: true, error: null }])
-    )
-  );
+  const [rooms, setRooms] = useState<Record<string, RoomEntry>>({});
+  const [roomIds, setRoomIds] = useState<string[]>([]);
   const [isOnline, setIsOnline] = useState(true);
+  const [loading, setLoading] = useState(true);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const fetchRoom = useCallback(async (roomId: string) => {
-    setRooms((prev) => ({
-      ...prev,
-      [roomId]: { ...prev[roomId], loading: true, error: null },
-    }));
+  const fetchRooms = useCallback(async () => {
+    setLoading(true);
+    // Mark all existing rooms as loading
+    setRooms((prev) =>
+      Object.fromEntries(
+        Object.entries(prev).map(([id, entry]) => [
+          id,
+          { ...entry, loading: true, error: null },
+        ])
+      )
+    );
     try {
-      const room = await api.getRoom(roomId);
-      setRooms((prev) => ({
-        ...prev,
-        [roomId]: { room, loading: false, error: null },
-      }));
+      const response = await api.getRooms();
+      const newRooms: Record<string, RoomEntry> = {};
+      const ids: string[] = [];
+      for (const room of response.rooms) {
+        newRooms[room.room_id] = { room, loading: false, error: null };
+        ids.push(room.room_id);
+      }
+      setRooms(newRooms);
+      setRoomIds(ids);
       setIsOnline(true);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
-      setRooms((prev) => ({
-        ...prev,
-        [roomId]: { ...prev[roomId], loading: false, error: message },
-      }));
+      setRooms((prev) => {
+        if (Object.keys(prev).length === 0) return prev;
+        return Object.fromEntries(
+          Object.entries(prev).map(([id, entry]) => [
+            id,
+            { ...entry, loading: false, error: message },
+          ])
+        );
+      });
       setIsOnline(false);
+    } finally {
+      setLoading(false);
     }
   }, []);
 
   const refresh = useCallback(() => {
-    KNOWN_ROOM_IDS.forEach((id) => fetchRoom(id));
-  }, [fetchRoom]);
+    fetchRooms();
+  }, [fetchRooms]);
 
   useEffect(() => {
     refresh();
@@ -62,5 +77,5 @@ export function useRooms(): UseRoomsReturn {
     };
   }, [refresh]);
 
-  return { rooms, refresh, isOnline };
+  return { rooms, roomIds, refresh, isOnline };
 }

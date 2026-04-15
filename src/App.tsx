@@ -6,18 +6,16 @@ import { SettingsModal } from "./components/SettingsModal";
 import { DiscoveryModal } from "./components/DiscoveryModal";
 import { getApiBaseUrl } from "./api/client";
 
-const ROOM_IDS = ["office", "gaming_room"];
-
 export default function App() {
-  const { rooms, refresh, isOnline } = useRooms();
+  const { rooms, roomIds, refresh, isOnline } = useRooms();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [discoveryOpen, setDiscoveryOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
-      {/* Header */}
+      {/* Header — general info bar */}
       <header className="sticky top-0 z-40 bg-zinc-950/90 backdrop-blur-md border-b border-zinc-800/60">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
               <svg
@@ -43,10 +41,22 @@ export default function App() {
             <span className="hidden sm:block text-xs text-zinc-600 font-mono border border-zinc-800 rounded px-1.5 py-0.5">
               {getApiBaseUrl()}
             </span>
+            {roomIds.length > 0 && (
+              <span className="text-xs text-zinc-600">
+                {roomIds.length} room{roomIds.length !== 1 ? "s" : ""}
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
             <ConnectionStatus isOnline={isOnline} onRefresh={refresh} />
+            <a
+              href="#/debug"
+              title="Debug"
+              className="p-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-100 transition-colors text-xs font-mono"
+            >
+              /debug
+            </a>
             <button
               onClick={() => setDiscoveryOpen(true)}
               title="Discover Devices"
@@ -94,28 +104,31 @@ export default function App() {
       </header>
 
       {/* Main content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-zinc-100">Rooms</h2>
-          <p className="text-sm text-zinc-500 mt-1">
-            Control your smart home devices · Auto-refreshes every 30s
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {ROOM_IDS.map((roomId) => {
-            const state = rooms[roomId];
+      <main className="max-w-screen-xl mx-auto px-4 sm:px-6 py-6">
+        {/* Room grid — auto-fill columns, min 260px each */}
+        <div
+          className="grid gap-4"
+          style={{ gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))" }}
+        >
+          {roomIds.map((roomId) => {
+            const entry = rooms[roomId];
             return (
               <RoomCard
                 key={roomId}
-                roomId={roomId}
-                room={state?.room ?? null}
-                loading={state?.loading ?? true}
-                error={state?.error ?? null}
+                room={entry?.room ?? null}
+                loading={entry?.loading ?? true}
+                error={entry?.error ?? null}
                 onRefresh={refresh}
               />
             );
           })}
+
+          {/* Empty state while first load with no rooms yet */}
+          {roomIds.length === 0 && !Object.values(rooms).some((r) => r.loading) && (
+            <p className="col-span-full text-center text-sm text-zinc-600 py-16">
+              No rooms found. Check your HermesScrypt configuration.
+            </p>
+          )}
         </div>
 
         <p className="text-center text-xs text-zinc-700 mt-10">
