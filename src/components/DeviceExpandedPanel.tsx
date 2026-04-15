@@ -73,6 +73,26 @@ export function DeviceExpandedPanel({ device, roomId, onRefresh }: Props) {
   const [pickerColor, setPickerColor] = useState(colorHex);
   useEffect(() => { setPickerColor(colorHex); }, [colorHex]);
 
+  // Commit color on native `change` (fires when user selects, not while dragging)
+  const colorInputRef = useRef<HTMLInputElement>(null);
+  const commitColorRef = useRef<(hex: string) => void>(() => {});
+  useEffect(() => {
+    commitColorRef.current = (hex: string) => {
+      if (!isDisabled && isOn) setColor(hexToRgb(hex));
+    };
+  }, [isDisabled, isOn, setColor]);
+  useEffect(() => {
+    const input = colorInputRef.current;
+    if (!input) return;
+    const handler = (e: Event) => {
+      const hex = (e.target as HTMLInputElement).value;
+      setPickerColor(hex);
+      commitColorRef.current(hex);
+    };
+    input.addEventListener("change", handler);
+    return () => input.removeEventListener("change", handler);
+  }, []);
+
   return (
     <div className="px-3 pt-2 pb-3 space-y-3 border-t border-zinc-700/40">
 
@@ -196,13 +216,11 @@ export function DeviceExpandedPanel({ device, roomId, onRefresh }: Props) {
             }}
           >
             <input
+              ref={colorInputRef}
               type="color"
               value={pickerColor}
               disabled={isDisabled || !isOn}
               onChange={(e) => setPickerColor(e.target.value)}
-              onBlur={(e) => {
-                if (!isDisabled && isOn) setColor(hexToRgb(e.target.value));
-              }}
               className="absolute inset-0 opacity-0 w-full h-full cursor-pointer disabled:cursor-not-allowed"
             />
           </label>
