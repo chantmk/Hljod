@@ -1,8 +1,8 @@
-import React, { useState, useCallback, useRef, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import type { RoomState, DeviceState } from "../api/types";
-import { api } from "../api/client";
 import { useRoomControl } from "../hooks/useRoomControl";
 import { RoomDetailModal } from "./RoomDetailModal";
+import { DeviceExpandedPanel } from "./DeviceExpandedPanel";
 
 interface RoomCardProps {
   room: RoomState | null;
@@ -52,41 +52,41 @@ function ExpandIcon() {
   );
 }
 
+function ChevronIcon({ open }: { open: boolean }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={`shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+    >
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+
 // ---------------------------------------------------------------------------
-// Inline name editor inside a device row
+// Device row
 // ---------------------------------------------------------------------------
 
 interface DeviceRowProps {
   device: DeviceState;
-  isEditing: boolean;
-  saving: boolean;
-  onStartEdit: () => void;
-  onSubmitName: (name: string) => void;
-  onCancelEdit: () => void;
+  isExpanded: boolean;
+  onToggle: () => void;
+  roomId: string;
+  onRefresh: () => void;
 }
 
-function DeviceRow({
-  device,
-  isEditing,
-  saving,
-  onStartEdit,
-  onSubmitName,
-  onCancelEdit,
-}: DeviceRowProps) {
-  const [draft, setDraft] = useState(device.display_name ?? "");
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  // Reset draft when editing starts
-  useEffect(() => {
-    if (isEditing) {
-      setDraft(device.display_name ?? "");
-      setTimeout(() => inputRef.current?.select(), 0);
-    }
-  }, [isEditing, device.display_name]);
-
-  const hasColor = device.r != null || device.g != null || device.b != null;
+function DeviceRow({ device, isExpanded, onToggle, roomId, onRefresh }: DeviceRowProps) {
+  const hasColor = device.r != null && device.g != null && device.b != null;
   const colorBg = hasColor
-    ? `rgb(${device.r ?? 255},${device.g ?? 255},${device.b ?? 255})`
+    ? `rgb(${device.r},${device.g},${device.b})`
     : undefined;
 
   const label = device.display_name
@@ -94,72 +94,59 @@ function DeviceRow({
     : `(${device.device_id ?? device.ip})`;
 
   return (
-    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-zinc-800/40 text-xs group">
-      {/* Status dot */}
-      <span
-        className={`shrink-0 w-1.5 h-1.5 rounded-full ${
-          !device.reachable
-            ? "bg-zinc-600"
-            : device.is_on
-            ? "bg-emerald-400"
-            : "bg-zinc-600"
-        }`}
-      />
-
-      {/* Name / inline editor */}
-      <div className="flex-1 min-w-0">
-        {isEditing ? (
-          <input
-            ref={inputRef}
-            type="text"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") onSubmitName(draft);
-              if (e.key === "Escape") onCancelEdit();
-            }}
-            onBlur={() => onSubmitName(draft)}
-            disabled={saving}
-            placeholder="Enter light name…"
-            className="w-full bg-zinc-700 border border-zinc-500 rounded px-1.5 py-0.5 text-xs text-zinc-200 focus:outline-none focus:border-zinc-400 disabled:opacity-50"
-          />
-        ) : (
-          <button
-            onClick={onStartEdit}
-            title="Click to rename"
-            className={`truncate text-left w-full transition-colors ${
-              device.display_name
-                ? "text-zinc-300 hover:text-zinc-100"
-                : "text-zinc-500 hover:text-zinc-400"
-            }`}
-          >
-            {label}
-          </button>
-        )}
-      </div>
-
-      {/* Saving spinner */}
-      {saving && (
-        <svg className="animate-spin shrink-0 text-zinc-500" xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-        </svg>
-      )}
-
-      {/* Brightness */}
-      {!isEditing && device.brightness != null && device.is_on && (
-        <span className="text-zinc-500 shrink-0">{device.brightness}%</span>
-      )}
-
-      {/* Color swatch */}
-      {!isEditing && hasColor && device.is_on && (
+    <div className={`rounded-lg overflow-hidden transition-colors ${isExpanded ? "bg-zinc-800/70 ring-1 ring-zinc-700/50" : "bg-zinc-800/40"}`}>
+      {/* Clickable header row */}
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center gap-2 px-3 py-2 text-xs text-left hover:bg-zinc-700/30 transition-colors"
+      >
+        {/* Status dot */}
         <span
-          className="shrink-0 w-3 h-3 rounded-full border border-zinc-600"
-          style={{ backgroundColor: colorBg }}
+          className={`shrink-0 w-1.5 h-1.5 rounded-full ${
+            !device.reachable
+              ? "bg-zinc-600"
+              : device.is_on
+              ? "bg-emerald-400"
+              : "bg-zinc-600"
+          }`}
         />
-      )}
 
-      {!device.reachable && !isEditing && (
-        <span className="text-zinc-600 shrink-0">—</span>
+        {/* Name */}
+        <span
+          className={`flex-1 min-w-0 truncate ${
+            device.display_name ? "text-zinc-300" : "text-zinc-500"
+          }`}
+        >
+          {label}
+        </span>
+
+        {/* Brightness */}
+        {device.brightness != null && device.is_on && !isExpanded && (
+          <span className="text-zinc-500 shrink-0">{device.brightness}%</span>
+        )}
+
+        {/* Color swatch */}
+        {hasColor && device.is_on && !isExpanded && (
+          <span
+            className="shrink-0 w-3 h-3 rounded-full border border-zinc-600"
+            style={{ backgroundColor: colorBg }}
+          />
+        )}
+
+        {/* Unreachable */}
+        {!device.reachable && !isExpanded && (
+          <span className="text-zinc-600 shrink-0 text-xs">—</span>
+        )}
+
+        {/* Chevron */}
+        <span className={`text-zinc-600 ${isExpanded ? "text-zinc-400" : ""}`}>
+          <ChevronIcon open={isExpanded} />
+        </span>
+      </button>
+
+      {/* Expanded panel */}
+      {isExpanded && (
+        <DeviceExpandedPanel device={device} roomId={roomId} onRefresh={onRefresh} />
       )}
     </div>
   );
@@ -174,10 +161,7 @@ export function RoomCard({ room, loading, error, onRefresh }: RoomCardProps) {
   const { pending, error: controlError, turnOn, turnOff, clearError } =
     useRoomControl(roomId, onRefresh);
   const [detailOpen, setDetailOpen] = useState(false);
-
-  // Rename state: which IP is being edited, and which is currently saving
-  const [editingIp, setEditingIp] = useState<string | null>(null);
-  const [savingIp, setSavingIp] = useState<string | null>(null);
+  const [expandedIp, setExpandedIp] = useState<string | null>(null);
 
   const isOn = room ? room.devices.some((d) => d.is_on) : false;
   const isDisabled = loading || pending || !room;
@@ -187,25 +171,9 @@ export function RoomCard({ room, loading, error, onRefresh }: RoomCardProps) {
     else turnOn();
   }, [isOn, turnOn, turnOff]);
 
-  const handleSubmitName = useCallback(
-    async (ip: string, name: string) => {
-      setEditingIp(null);
-      const trimmed = name.trim();
-      // Find current name to skip no-op saves
-      const current = room?.devices.find((d) => d.ip === ip)?.display_name ?? null;
-      const next = trimmed === "" ? null : trimmed;
-      if (next === current) return;
-
-      setSavingIp(ip);
-      try {
-        await api.setDeviceName(roomId, ip, next);
-        onRefresh();
-      } finally {
-        setSavingIp(null);
-      }
-    },
-    [roomId, room, onRefresh]
-  );
+  const handleToggleExpand = useCallback((ip: string) => {
+    setExpandedIp((prev) => (prev === ip ? null : ip));
+  }, []);
 
   const displayError = error ?? controlError;
 
@@ -250,11 +218,11 @@ export function RoomCard({ room, loading, error, onRefresh }: RoomCardProps) {
             <button
               onClick={() => setDetailOpen(true)}
               disabled={!room}
-              title="Details & Controls"
+              title="Room Controls"
               className="flex items-center gap-1 px-2 py-1 text-xs rounded-lg bg-zinc-700/60 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               <ExpandIcon />
-              <span className="hidden sm:inline">Details</span>
+              <span className="hidden sm:inline">Room</span>
             </button>
 
             <button
@@ -296,8 +264,8 @@ export function RoomCard({ room, loading, error, onRefresh }: RoomCardProps) {
           </div>
         )}
 
-        {/* Light list */}
-        <div className="px-4 py-3 space-y-1.5 overflow-y-auto max-h-48">
+        {/* Device list */}
+        <div className="px-4 py-3 space-y-1.5">
           {loading && !room && (
             <div className="space-y-1.5 animate-pulse">
               {[1, 2, 3].map((i) => (
@@ -315,11 +283,10 @@ export function RoomCard({ room, loading, error, onRefresh }: RoomCardProps) {
               <DeviceRow
                 key={device.ip}
                 device={device}
-                isEditing={editingIp === device.ip}
-                saving={savingIp === device.ip}
-                onStartEdit={() => setEditingIp(device.ip)}
-                onSubmitName={(name) => handleSubmitName(device.ip, name)}
-                onCancelEdit={() => setEditingIp(null)}
+                isExpanded={expandedIp === device.ip}
+                onToggle={() => handleToggleExpand(device.ip)}
+                roomId={roomId}
+                onRefresh={onRefresh}
               />
             ))}
         </div>
