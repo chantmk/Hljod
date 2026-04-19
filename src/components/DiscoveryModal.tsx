@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { api } from "../api/client";
 import type { DiscoveredDevice, ConfigRoom } from "../api/types";
 
@@ -137,8 +137,6 @@ export function DiscoveryModal({ isOpen, onClose, onRefresh }: DiscoveryModalPro
       [ip]: {
         ...prev[ip],
         [roomId]: {
-          pending: false,
-          error: null,
           ...prev[ip]?.[roomId],
           ...state,
         },

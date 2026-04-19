@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import App from "./App";
 import { DebugPage } from "./pages/DebugPage";
 

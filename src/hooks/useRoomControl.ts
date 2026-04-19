@@ -22,7 +22,7 @@ export function useRoomControl(
   const [error, setError] = useState<string | null>(null);
 
   const run = useCallback(
-    async (action: () => Promise<void>) => {
+    async (action: () => Promise<unknown>) => {
       setPending(true);
       setError(null);
       try {

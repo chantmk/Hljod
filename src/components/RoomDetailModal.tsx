@@ -1,4 +1,3 @@
-import React from "react";
 import type { RoomState } from "../api/types";
 import { useRoomControl } from "../hooks/useRoomControl";
 import { WizLightControls } from "./WizLightControls";

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import type { RoomState, DeviceState } from "../api/types";
 import { useRoomControl } from "../hooks/useRoomControl";
 import { RoomDetailModal } from "./RoomDetailModal";

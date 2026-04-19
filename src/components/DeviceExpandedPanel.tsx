@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import type { DeviceState } from "../api/types";
 import { api } from "../api/client";
 import { PRESET_COLORS, SCENES } from "../api/types";

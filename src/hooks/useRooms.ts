@@ -21,11 +21,9 @@ export function useRooms(): UseRoomsReturn {
   const [rooms, setRooms] = useState<Record<string, RoomEntry>>({});
   const [roomIds, setRoomIds] = useState<string[]>([]);
   const [isOnline, setIsOnline] = useState(true);
-  const [loading, setLoading] = useState(true);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchRooms = useCallback(async () => {
-    setLoading(true);
     // Mark all existing rooms as loading
     setRooms((prev) =>
       Object.fromEntries(
@@ -58,8 +56,6 @@ export function useRooms(): UseRoomsReturn {
         );
       });
       setIsOnline(false);
-    } finally {
-      setLoading(false);
     }
   }, []);
 

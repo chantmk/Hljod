@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useRooms } from "./hooks/useRooms";
 import { RoomCard } from "./components/RoomCard";
 import { ConnectionStatus } from "./components/ConnectionStatus";
