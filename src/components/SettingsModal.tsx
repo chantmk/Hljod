@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { getApiBaseUrl, setApiBaseUrl } from "../api/client";
 
 interface SettingsModalProps {
@@ -31,9 +31,8 @@ export function SettingsModal({ isOpen, onClose, onSave }: SettingsModalProps) {
   };
 
   const handleReset = () => {
-    const defaultUrl = "http://nas.local:8000";
-    setUrl(defaultUrl);
-    setApiBaseUrl(defaultUrl);
+    setUrl("");
+    setApiBaseUrl("");
   };
 
   return (
@@ -127,12 +126,16 @@ export function SettingsModal({ isOpen, onClose, onSave }: SettingsModalProps) {
                 <code>VITE_API_URL</code> env variable (build-time)
               </li>
               <li>localStorage (this setting)</li>
-              <li>Default: http://nas.local:8000</li>
+              <li>Default: same origin (nginx proxy)</li>
             </ol>
           </div>
         </div>
 
-        <div className="flex items-center justify-between mt-6 pt-4 border-t border-zinc-800">
+        <p className="mt-5 text-xs text-zinc-600 text-center">
+          Hljod v{__APP_VERSION__}
+        </p>
+
+        <div className="flex items-center justify-between mt-3 pt-4 border-t border-zinc-800">
           <button
             onClick={handleReset}
             className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
