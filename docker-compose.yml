@@ -2,14 +2,8 @@ version: "3.9"
 
 services:
   hljod:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        # Optional: bake the API URL into the JS bundle at build time.
-        # If left empty, the app uses localStorage or falls back to http://nas.local:8000
-        VITE_API_URL: ""
     image: hljod:latest
+    pull_policy: never
     container_name: hljod
     restart: unless-stopped
     ports:
@@ -17,9 +11,3 @@ services:
     environment:
       # nginx will proxy /api/ and /health to this URL at runtime
       API_URL: http://nas.local:8000
-    networks:
-      - hljod_net
-
-networks:
-  hljod_net:
-    driver: bridge
