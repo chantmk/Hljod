@@ -11,11 +11,10 @@ import type {
   ScenePayload,
   DiscoverResponse,
   ConfigRoom,
-  DeviceEntry,
 } from "./types";
 
 const STORAGE_KEY = "hljod_api_url";
-const DEFAULT_API_URL = "http://nas.local:8000";
+const DEFAULT_API_URL = "";
 
 export function getApiBaseUrl(): string {
   if (import.meta.env.VITE_API_URL) {
