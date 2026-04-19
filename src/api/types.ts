@@ -118,6 +118,9 @@ export interface ConfigRoom {
   devices: DeviceEntry[];
 }
 
+export const DEVICE_TYPES = ["wizlight"] as const;
+export type DeviceType = typeof DEVICE_TYPES[number];
+
 export interface Scene {
   id: number;
   name: string;

@@ -163,10 +163,17 @@ export const api = {
     return request<ConfigRoom[]>("/api/v1/config/rooms");
   },
 
-  addDevice(roomId: string, ip: string): Promise<ConfigRoom> {
+  addDevice(roomId: string, ip: string, name?: string): Promise<ConfigRoom> {
     return request<ConfigRoom>(`/api/v1/config/rooms/${roomId}/devices`, {
       method: "POST",
-      body: JSON.stringify({ ip }),
+      body: JSON.stringify({ ip, ...(name ? { name } : {}) }),
+    });
+  },
+
+  createRoom(name: string, device_type: string): Promise<ConfigRoom> {
+    return request<ConfigRoom>("/api/v1/config/rooms", {
+      method: "POST",
+      body: JSON.stringify({ name, device_type }),
     });
   },
 

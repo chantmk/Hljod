@@ -225,6 +225,9 @@ export function DebugPage() {
   const [temperature, setTemperature] = useState("4000");
   const [sceneId, setSceneId] = useState("1");
   const [deviceIp, setDeviceIp] = useState("");
+  const [deviceName, setDeviceName] = useState("");
+  const [newRoomName, setNewRoomName] = useState("");
+  const [newRoomType, setNewRoomType] = useState("wizlight");
 
   const roomFields = (
     <Field label="room_id" value={roomId} onChange={setRoomId} placeholder="office" />
@@ -298,6 +301,14 @@ export function DebugPage() {
     <>
       {roomFields}
       <Field label="device ip" value={deviceIp} onChange={setDeviceIp} placeholder="192.168.1.100" />
+      <Field label="name (opt)" value={deviceName} onChange={setDeviceName} placeholder="Desk lamp" />
+    </>
+  );
+
+  const createRoomFields = (
+    <>
+      <Field label="name" value={newRoomName} onChange={setNewRoomName} placeholder="Living room" />
+      <Field label="device_type" value={newRoomType} onChange={setNewRoomType} placeholder="wizlight" />
     </>
   );
 
@@ -536,12 +547,26 @@ export function DebugPage() {
 
           <EndpointCard
             method="POST"
+            path="/api/v1/config/rooms"
+            description="Create a new room and persist to config. Room ID is auto-generated from the name."
+            fields={createRoomFields}
+            onSend={() =>
+              sendRequest("POST", "/api/v1/config/rooms", {
+                name: newRoomName,
+                device_type: newRoomType,
+              })
+            }
+          />
+
+          <EndpointCard
+            method="POST"
             path="/api/v1/config/rooms/{room_id}/devices"
-            description="Add a device IP to a room and persist to config."
+            description="Add a device IP (and optional name) to a room and persist to config."
             fields={deviceFields}
             onSend={() =>
               sendRequest("POST", `/api/v1/config/rooms/${roomId}/devices`, {
                 ip: deviceIp,
+                ...(deviceName ? { name: deviceName } : {}),
               })
             }
           />
