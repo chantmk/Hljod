@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getApiBaseUrl, setApiBaseUrl } from "../api/client";
+import { getApiBaseUrl, setApiBaseUrl, api } from "../api/client";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -10,13 +10,28 @@ interface SettingsModalProps {
 export function SettingsModal({ isOpen, onClose, onSave }: SettingsModalProps) {
   const [url, setUrl] = useState(getApiBaseUrl());
   const [saved, setSaved] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
       setUrl(getApiBaseUrl());
       setSaved(false);
+      setExportError(null);
     }
   }, [isOpen]);
+
+  const handleExport = async () => {
+    setExporting(true);
+    setExportError(null);
+    try {
+      await api.downloadConfig();
+    } catch (e) {
+      setExportError(e instanceof Error ? e.message : "Export failed");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -136,12 +151,41 @@ export function SettingsModal({ isOpen, onClose, onSave }: SettingsModalProps) {
         </p>
 
         <div className="flex items-center justify-between mt-3 pt-4 border-t border-zinc-800">
-          <button
-            onClick={handleReset}
-            className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
-          >
-            Reset to default
-          </button>
+          <div className="flex flex-col gap-1">
+            <div className="flex gap-3">
+              <button
+                onClick={handleReset}
+                className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
+              >
+                Reset to default
+              </button>
+              <button
+                onClick={handleExport}
+                disabled={exporting}
+                className="flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-300 transition-colors disabled:opacity-50"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                {exporting ? "Exporting…" : "Export config"}
+              </button>
+            </div>
+            {exportError && (
+              <p className="text-xs text-red-400">{exportError}</p>
+            )}
+          </div>
           <div className="flex gap-3">
             <button
               onClick={onClose}

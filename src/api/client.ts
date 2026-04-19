@@ -193,4 +193,24 @@ export const api = {
       }
     );
   },
+
+  async downloadConfig(): Promise<void> {
+    const rooms = await request<ConfigRoom[]>("/api/v1/config/rooms");
+    const payload: Record<string, unknown> = {};
+    for (const room of rooms) {
+      payload[room.room_id] = {
+        name: room.name,
+        type: room.device_type,
+        devices: room.devices.map((d) => ({ ip: d.ip, ...(d.name ? { name: d.name } : {}) })),
+      };
+    }
+    const json = JSON.stringify({ rooms: payload }, null, 2) + "\n";
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "config.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  },
 };
