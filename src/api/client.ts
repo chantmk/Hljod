@@ -184,6 +184,16 @@ export const api = {
     });
   },
 
+  moveDevice(fromRoomId: string, ip: string, toRoomId: string): Promise<ConfigRoom> {
+    return request<ConfigRoom>(
+      `/api/v1/config/rooms/${fromRoomId}/devices/${encodeURIComponent(ip)}/move`,
+      {
+        method: "POST",
+        body: JSON.stringify({ to_room_id: toRoomId }),
+      }
+    );
+  },
+
   setDeviceName(roomId: string, ip: string, name: string | null): Promise<ConfigRoom> {
     return request<ConfigRoom>(
       `/api/v1/config/rooms/${roomId}/devices/${encodeURIComponent(ip)}`,

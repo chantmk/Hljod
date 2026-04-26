@@ -48,7 +48,7 @@ VITE_API_URL=http://192.168.1.100:8000
 
 ### Rooms
 
-`ROOM_IDS` in `src/App.tsx` controls which rooms are fetched and rendered. Each ID must match a room key in HermesScrypt's `config.json`. Add/remove entries in both places when creating a new room.
+Rooms are fetched dynamically from HermesScrypt on load and every 30 seconds. To add or remove a room, edit HermesScrypt's `config.json` — no frontend code change is needed.
 
 ---
 
@@ -88,17 +88,24 @@ Hljod is a pure frontend; all device state and control goes through **HermesScry
 
 Key endpoints used:
 
-| Method | Path | Purpose |
-|--------|------|---------|
-| `GET`  | `/health` | Connection health check |
-| `GET`  | `/api/v1/rooms` | List all rooms |
-| `GET`  | `/api/v1/rooms/{id}` | Fetch room state (returns `type` + `devices` array) |
-| `POST` | `/api/v1/rooms/{id}/on` | Turn room on |
-| `POST` | `/api/v1/rooms/{id}/off` | Turn room off |
-| `POST` | `/api/v1/rooms/{id}/brightness` | Set brightness `{ value: number }` |
-| `POST` | `/api/v1/rooms/{id}/color` | Set colour `{ r, g, b }` |
-| `POST` | `/api/v1/rooms/{id}/temperature` | Set colour temperature `{ value: number }` |
-| `POST` | `/api/v1/rooms/{id}/scene` | Activate scene `{ scene_id: number }` |
+| Method   | Path | Purpose |
+|----------|------|---------|
+| `GET`    | `/health` | Connection health check |
+| `GET`    | `/api/v1/rooms` | List all rooms with live device state |
+| `GET`    | `/api/v1/rooms/{id}` | Fetch single room state |
+| `POST`   | `/api/v1/rooms/{id}/on` | Turn room on |
+| `POST`   | `/api/v1/rooms/{id}/off` | Turn room off |
+| `POST`   | `/api/v1/rooms/{id}/brightness` | Set brightness `{ value: number }` |
+| `POST`   | `/api/v1/rooms/{id}/color` | Set colour `{ r, g, b }` |
+| `POST`   | `/api/v1/rooms/{id}/temperature` | Set colour temperature `{ value: number }` |
+| `POST`   | `/api/v1/rooms/{id}/scene` | Activate scene `{ scene_id: number }` |
+| `GET`    | `/api/v1/config/rooms` | List all rooms from config |
+| `POST`   | `/api/v1/config/rooms` | Create a new room |
+| `POST`   | `/api/v1/config/rooms/{id}/devices` | Add a device to a room `{ ip, name? }` |
+| `DELETE` | `/api/v1/config/rooms/{id}/devices` | Remove a device from a room `{ ip }` |
+| `PATCH`  | `/api/v1/config/rooms/{id}/devices/{ip}` | Rename a device `{ name }` |
+| `POST`   | `/api/v1/config/rooms/{id}/devices/{ip}/move` | Move device to another room `{ to_room_id }` |
+| `GET`    | `/api/v1/lights/discover` | Discover devices on the network |
 
 ---
 
@@ -156,21 +163,28 @@ That is all. The card header (room name, power toggle, online indicator) is univ
 ```
 src/
   api/
-    types.ts              # TypeScript interfaces + payload types + scene/colour constants
-    client.ts             # fetch wrapper (api.*) + API URL resolution
+    types.ts                  # TypeScript interfaces + payload types + scene/colour constants
+    client.ts                 # fetch wrapper (api.*) + API URL resolution
   hooks/
-    useRooms.ts           # fetches all room states; auto-refreshes every 30 s
-    useRoomControl.ts     # wraps write ops with pending/error state + post-success refresh
+    useRooms.ts               # fetches all room states; auto-refreshes every 30 s
+    useRoomControl.ts         # wraps room write ops with pending/error state + post-success refresh
+    useDeviceControl.ts       # wraps per-device write ops with pending/error state
   components/
-    RoomCard.tsx          # thin compositor — dispatches on room.type
-    WizLightControls.tsx  # WizLight-specific controls (brightness, colour, temp, scenes, per-bulb details)
-    BrightnessSlider.tsx  # commits on mouseup/touchend only
-    TemperatureSlider.tsx # warm-to-cool gradient track; same commit-on-release pattern
-    ColorPicker.tsx       # 8 preset swatches + native colour input + hex field
-    SceneSelector.tsx     # dropdown of 32 scenes
-    ConnectionStatus.tsx  # pulsing status dot + manual refresh button
-    SettingsModal.tsx     # modal for editing API base URL (saved to localStorage)
-  App.tsx                 # layout, header, room grid
+    RoomCard.tsx              # top-level room card — composes device control components
+    RoomDetailModal.tsx       # full room controls modal
+    DeviceExpandedPanel.tsx   # per-device controls: power, brightness, colour, temp, scenes, rename, move, remove
+    WizLightControls.tsx      # WizLight-specific room-level controls
+    BrightnessSlider.tsx      # commits on mouseup/touchend only
+    TemperatureSlider.tsx     # warm-to-cool gradient track; same commit-on-release pattern
+    ColorPicker.tsx           # 8 preset swatches + native colour input + hex field
+    SceneSelector.tsx         # dropdown of 32 scenes
+    DiscoveryModal.tsx        # network discovery + assign/unassign devices to rooms
+    AddDeviceModal.tsx        # add device to room by IP
+    ConnectionStatus.tsx      # pulsing status dot + manual refresh button
+    SettingsModal.tsx         # modal for editing API base URL (saved to localStorage)
+  pages/
+    DebugPage.tsx             # debug UI for all API endpoints
+  App.tsx                     # layout, header, room grid
   main.tsx
   index.css
 ```

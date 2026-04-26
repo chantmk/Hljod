@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import type { DeviceState } from "../api/types";
+import type { DeviceState, ConfigRoom } from "../api/types";
 import { api } from "../api/client";
 import { PRESET_COLORS, SCENES } from "../api/types";
 import { useDeviceControl } from "../hooks/useDeviceControl";
@@ -31,6 +31,56 @@ export function DeviceExpandedPanel({ device, roomId, onRefresh }: Props) {
     setBrightness, setColor, setTemperature, setScene,
     clearError,
   } = useDeviceControl(deviceId, onRefresh);
+
+  // Remove state
+  const [confirmRemove, setConfirmRemove] = useState(false);
+  const [removePending, setRemovePending] = useState(false);
+  const [removeError, setRemoveError] = useState<string | null>(null);
+
+  // Move state
+  const [showMove, setShowMove] = useState(false);
+  const [moveRooms, setMoveRooms] = useState<ConfigRoom[] | null>(null);
+  const [movePending, setMovePending] = useState(false);
+  const [moveError, setMoveError] = useState<string | null>(null);
+
+  const handleRemove = useCallback(async () => {
+    setRemovePending(true);
+    setRemoveError(null);
+    try {
+      await api.removeDevice(roomId, device.ip);
+      onRefresh();
+    } catch (err) {
+      setRemoveError(err instanceof Error ? err.message : "Failed to remove device");
+      setConfirmRemove(false);
+    } finally {
+      setRemovePending(false);
+    }
+  }, [roomId, device.ip, onRefresh]);
+
+  const openMove = useCallback(async () => {
+    setShowMove(true);
+    if (moveRooms === null) {
+      try {
+        const rooms = await api.getConfigRooms();
+        setMoveRooms(rooms.filter((r) => r.room_id !== roomId));
+      } catch {
+        setMoveError("Failed to load rooms");
+      }
+    }
+  }, [moveRooms, roomId]);
+
+  const handleMove = useCallback(async (toRoomId: string) => {
+    setMovePending(true);
+    setMoveError(null);
+    try {
+      await api.moveDevice(roomId, device.ip, toRoomId);
+      onRefresh();
+    } catch (err) {
+      setMoveError(err instanceof Error ? err.message : "Failed to move device");
+      setMovePending(false);
+      setShowMove(false);
+    }
+  }, [roomId, device.ip, onRefresh]);
 
   // Name editing
   const [editingName, setEditingName] = useState(false);
@@ -239,6 +289,99 @@ export function DeviceExpandedPanel({ device, roomId, onRefresh }: Props) {
               {scene.name}
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* ── Manage ── */}
+      <div className="space-y-2 pt-1 border-t border-zinc-700/40">
+        <p className="text-xs font-medium text-zinc-500">Manage</p>
+
+        {/* Move to room */}
+        <div className="space-y-1">
+          {!showMove ? (
+            <button
+              onClick={openMove}
+              disabled={movePending}
+              className="w-full py-1.5 px-2.5 rounded-lg text-xs font-medium text-left bg-zinc-700/60 text-zinc-400 border border-zinc-600/60 hover:bg-zinc-700 hover:text-zinc-200 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Move to room…
+            </button>
+          ) : (
+            <div className="flex items-center gap-2">
+              {moveRooms === null ? (
+                <span className="text-xs text-zinc-500 flex items-center gap-1.5">
+                  <svg className="animate-spin" xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                  Loading rooms…
+                </span>
+              ) : moveRooms.length === 0 ? (
+                <span className="text-xs text-zinc-500">No other rooms available.</span>
+              ) : (
+                <select
+                  autoFocus
+                  disabled={movePending}
+                  defaultValue=""
+                  onChange={(e) => { if (e.target.value) handleMove(e.target.value); }}
+                  className="flex-1 bg-zinc-800 border border-zinc-600 rounded-lg px-2 py-1 text-xs text-zinc-200 focus:outline-none focus:border-zinc-400 disabled:opacity-50"
+                >
+                  <option value="" disabled>Move to…</option>
+                  {moveRooms.map((r) => (
+                    <option key={r.room_id} value={r.room_id}>{r.name}</option>
+                  ))}
+                </select>
+              )}
+              <button
+                onClick={() => setShowMove(false)}
+                className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors shrink-0"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+          {moveError && (
+            <div className="flex items-center gap-2 bg-red-950/50 border border-red-800/50 rounded-lg px-2.5 py-1.5 text-xs">
+              <span className="text-red-300 flex-1">{moveError}</span>
+              <button onClick={() => setMoveError(null)} className="text-red-500 hover:text-red-300 transition-colors text-base leading-none">×</button>
+            </div>
+          )}
+        </div>
+
+        {/* Remove from room */}
+        <div className="space-y-1">
+          {!confirmRemove ? (
+            <button
+              onClick={() => setConfirmRemove(true)}
+              disabled={removePending}
+              className="w-full py-1.5 px-2.5 rounded-lg text-xs font-medium text-left bg-red-950/40 text-red-400 border border-red-800/40 hover:bg-red-950/70 hover:text-red-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Remove from room
+            </button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-zinc-400">Remove this device?</span>
+              <button
+                onClick={handleRemove}
+                disabled={removePending}
+                className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg bg-red-900/70 border border-red-700 text-red-200 hover:bg-red-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {removePending && (
+                  <svg className="animate-spin" xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                )}
+                Confirm
+              </button>
+              <button
+                onClick={() => setConfirmRemove(false)}
+                className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+          {removeError && (
+            <div className="flex items-center gap-2 bg-red-950/50 border border-red-800/50 rounded-lg px-2.5 py-1.5 text-xs">
+              <span className="text-red-300 flex-1">{removeError}</span>
+              <button onClick={() => setRemoveError(null)} className="text-red-500 hover:text-red-300 transition-colors text-base leading-none">×</button>
+            </div>
+          )}
         </div>
       </div>
     </div>
