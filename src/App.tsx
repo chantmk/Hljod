@@ -5,6 +5,8 @@ import { ConnectionStatus } from "./components/ConnectionStatus";
 import { SettingsModal } from "./components/SettingsModal";
 import { DiscoveryModal } from "./components/DiscoveryModal";
 import { AddDeviceModal } from "./components/AddDeviceModal";
+import { SavePresetModal } from "./components/SavePresetModal";
+import { PresetsPanel } from "./components/PresetsPanel";
 import { getApiBaseUrl } from "./api/client";
 
 export default function App() {
@@ -12,6 +14,8 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [discoveryOpen, setDiscoveryOpen] = useState(false);
   const [addDeviceOpen, setAddDeviceOpen] = useState(false);
+  const [savePresetOpen, setSavePresetOpen] = useState(false);
+  const [presetRefreshTrigger, setPresetRefreshTrigger] = useState(0);
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
@@ -52,6 +56,15 @@ export default function App() {
 
           <div className="flex items-center gap-2">
             <ConnectionStatus isOnline={isOnline} onRefresh={refresh} />
+            <button
+              onClick={() => setSavePresetOpen(true)}
+              title="Save Preset"
+              className="p-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-amber-400 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+              </svg>
+            </button>
             <a
               href="#/debug"
               title="Debug"
@@ -127,6 +140,11 @@ export default function App() {
 
       {/* Main content */}
       <main className="max-w-screen-xl mx-auto px-4 sm:px-6 py-6">
+        <PresetsPanel
+          onRefreshRooms={refresh}
+          refreshTrigger={presetRefreshTrigger}
+        />
+
         {/* Room grid — auto-fill columns, min 260px each */}
         <div
           className="grid gap-4"
@@ -174,6 +192,13 @@ export default function App() {
         isOpen={addDeviceOpen}
         onClose={() => setAddDeviceOpen(false)}
         onRefresh={refresh}
+      />
+
+      <SavePresetModal
+        isOpen={savePresetOpen}
+        onClose={() => setSavePresetOpen(false)}
+        onSaved={() => setPresetRefreshTrigger((n) => n + 1)}
+        rooms={roomIds.map((id) => rooms[id]?.room).filter((r): r is NonNullable<typeof r> => r !== null && r !== undefined)}
       />
     </div>
   );

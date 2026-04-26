@@ -161,6 +161,40 @@ export const SCENES: Scene[] = [
   { id: 32, name: "Steampunk" },
 ];
 
+// ---------------------------------------------------------------------------
+// Preset types
+// ---------------------------------------------------------------------------
+
+export interface PresetDeviceEntry {
+  device_id: string;
+  is_on?: boolean;
+  brightness?: number;
+  r?: number;
+  g?: number;
+  b?: number;
+  color_temp?: number;
+  scene_id?: number;
+}
+
+export interface Preset {
+  preset_id: string;
+  name: string;
+  devices: PresetDeviceEntry[];
+}
+
+export interface CreatePresetPayload {
+  name: string;
+  devices: PresetDeviceEntry[];
+}
+
+export interface ApplyPresetResponse {
+  preset_id: string;
+  name: string;
+  results: DeviceState[];
+  success_count: number;
+  failure_count: number;
+}
+
 export const PRESET_COLORS: { name: string; color: LightColor }[] = [
   { name: "White", color: { r: 255, g: 255, b: 255 } },
   { name: "Red", color: { r: 255, g: 0, b: 0 } },

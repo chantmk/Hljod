@@ -11,6 +11,9 @@ import type {
   ScenePayload,
   DiscoverResponse,
   ConfigRoom,
+  Preset,
+  CreatePresetPayload,
+  ApplyPresetResponse,
 } from "./types";
 
 const STORAGE_KEY = "hljod_api_url";
@@ -201,6 +204,30 @@ export const api = {
         method: "PATCH",
         body: JSON.stringify({ name }),
       }
+    );
+  },
+
+  getPresets(): Promise<Preset[]> {
+    return request<Preset[]>("/api/v1/presets");
+  },
+
+  createPreset(payload: CreatePresetPayload): Promise<Preset> {
+    return request<Preset>("/api/v1/presets", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  deletePreset(presetId: string): Promise<void> {
+    return request<void>(`/api/v1/presets/${encodeURIComponent(presetId)}`, {
+      method: "DELETE",
+    });
+  },
+
+  applyPreset(presetId: string): Promise<ApplyPresetResponse> {
+    return request<ApplyPresetResponse>(
+      `/api/v1/presets/${encodeURIComponent(presetId)}/apply`,
+      { method: "POST" }
     );
   },
 

@@ -9,6 +9,7 @@
 - Manual device add by IP with optional name and room creation
 - Settings modal for runtime API URL configuration
 - Export config as JSON from the settings modal
+- **Presets**: save named snapshots of selected devices' current states; apply or delete from a persistent panel above the room grid
 
 ## Architecture
 Vite + React + Tailwind CSS. No global state management — local hooks and component state only.
@@ -33,6 +34,8 @@ src/
     AddDeviceModal.tsx        # Add device by IP
     ConnectionStatus.tsx      # Pulsing status dot + manual refresh
     SettingsModal.tsx         # API URL config + export
+    SavePresetModal.tsx       # Preset name input + per-room device selector; captures current state on save
+    PresetsPanel.tsx          # Persistent preset buttons above room grid; apply / delete
 ```
 
 ## Usage
