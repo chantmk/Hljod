@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRooms } from "./hooks/useRooms";
 import { RoomCard } from "./components/RoomCard";
 import { ConnectionStatus } from "./components/ConnectionStatus";
 import { SettingsModal } from "./components/SettingsModal";
 import { DiscoveryModal } from "./components/DiscoveryModal";
 import { AddDeviceModal } from "./components/AddDeviceModal";
+import { AddRoomModal } from "./components/AddRoomModal";
 import { SavePresetModal } from "./components/SavePresetModal";
 import { PresetsPanel } from "./components/PresetsPanel";
 import { getApiBaseUrl } from "./api/client";
@@ -14,8 +15,22 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [discoveryOpen, setDiscoveryOpen] = useState(false);
   const [addDeviceOpen, setAddDeviceOpen] = useState(false);
+  const [addRoomOpen, setAddRoomOpen] = useState(false);
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [savePresetOpen, setSavePresetOpen] = useState(false);
   const [presetRefreshTrigger, setPresetRefreshTrigger] = useState(0);
+  const addMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!addMenuOpen) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (addMenuRef.current && !addMenuRef.current.contains(e.target as Node)) {
+        setAddMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [addMenuOpen]);
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
@@ -72,26 +87,53 @@ export default function App() {
             >
               /debug
             </a>
-            <button
-              onClick={() => setAddDeviceOpen(true)}
-              title="Add Device"
-              className="p-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-100 transition-colors"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+            <div className="relative" ref={addMenuRef}>
+              <button
+                onClick={() => setAddMenuOpen((prev) => !prev)}
+                title="Add"
+                className="p-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-100 transition-colors"
               >
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-            </button>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+              </button>
+              {addMenuOpen && (
+                <div className="absolute right-0 top-full mt-1 w-36 bg-zinc-800 border border-zinc-700 rounded-xl shadow-xl overflow-hidden z-50">
+                  <button
+                    onClick={() => { setAddMenuOpen(false); setAddRoomOpen(true); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-700 hover:text-zinc-100 transition-colors"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                      <polyline points="9 22 9 12 15 12 15 22" />
+                    </svg>
+                    Add Room
+                  </button>
+                  <button
+                    onClick={() => { setAddMenuOpen(false); setAddDeviceOpen(true); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-700 hover:text-zinc-100 transition-colors"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="9" y1="18" x2="15" y2="18" />
+                      <line x1="10" y1="22" x2="14" y2="22" />
+                      <path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14" />
+                    </svg>
+                    Add Device
+                  </button>
+                </div>
+              )}
+            </div>
             <button
               onClick={() => setDiscoveryOpen(true)}
               title="Discover Devices"
@@ -191,6 +233,12 @@ export default function App() {
       <AddDeviceModal
         isOpen={addDeviceOpen}
         onClose={() => setAddDeviceOpen(false)}
+        onRefresh={refresh}
+      />
+
+      <AddRoomModal
+        isOpen={addRoomOpen}
+        onClose={() => setAddRoomOpen(false)}
         onRefresh={refresh}
       />
 

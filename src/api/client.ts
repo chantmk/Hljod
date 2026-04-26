@@ -187,6 +187,17 @@ export const api = {
     });
   },
 
+  deleteRoom(roomId: string): Promise<void> {
+    return request<void>(`/api/v1/config/rooms/${roomId}`, { method: "DELETE" });
+  },
+
+  renameRoom(roomId: string, name: string): Promise<ConfigRoom> {
+    return request<ConfigRoom>(`/api/v1/config/rooms/${roomId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ name }),
+    });
+  },
+
   moveDevice(fromRoomId: string, ip: string, toRoomId: string): Promise<ConfigRoom> {
     return request<ConfigRoom>(
       `/api/v1/config/rooms/${fromRoomId}/devices/${encodeURIComponent(ip)}/move`,

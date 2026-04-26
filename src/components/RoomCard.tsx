@@ -1,8 +1,9 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import type { RoomState, DeviceState } from "../api/types";
 import { useRoomControl } from "../hooks/useRoomControl";
 import { RoomDetailModal } from "./RoomDetailModal";
 import { DeviceExpandedPanel } from "./DeviceExpandedPanel";
+import { api } from "../api/client";
 
 interface RoomCardProps {
   room: RoomState | null;
@@ -163,6 +164,21 @@ export function RoomCard({ room, loading, error, onRefresh }: RoomCardProps) {
   const [detailOpen, setDetailOpen] = useState(false);
   const [expandedIp, setExpandedIp] = useState<string | null>(null);
 
+  // Rename state
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState("");
+  const [renamePending, setRenamePending] = useState(false);
+  const renameInputRef = useRef<HTMLInputElement>(null);
+
+  // Delete state
+  const [deleteConfirming, setDeleteConfirming] = useState(false);
+  const [deletePending, setDeletePending] = useState(false);
+  const [opError, setOpError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isRenaming) renameInputRef.current?.select();
+  }, [isRenaming]);
+
   const isOn = room ? room.devices.some((d) => d.is_on) : false;
   const isDisabled = loading || pending || !room;
 
@@ -175,7 +191,46 @@ export function RoomCard({ room, loading, error, onRefresh }: RoomCardProps) {
     setExpandedIp((prev) => (prev === ip ? null : ip));
   }, []);
 
-  const displayError = error ?? controlError;
+  const startRenaming = () => {
+    setRenameValue(room?.name ?? "");
+    setIsRenaming(true);
+  };
+
+  const handleRenameSubmit = async () => {
+    if (renamePending) return;
+    const trimmed = renameValue.trim();
+    if (!trimmed || trimmed === room?.name) { setIsRenaming(false); return; }
+    setRenamePending(true);
+    try {
+      await api.renameRoom(roomId, trimmed);
+      onRefresh();
+      setIsRenaming(false);
+    } catch (err) {
+      setOpError(err instanceof Error ? err.message : "Failed to rename room.");
+      setIsRenaming(false);
+    } finally {
+      setRenamePending(false);
+    }
+  };
+
+  const handleRenameKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") handleRenameSubmit();
+    if (e.key === "Escape") setIsRenaming(false);
+  };
+
+  const handleDelete = async () => {
+    setDeletePending(true);
+    try {
+      await api.deleteRoom(roomId);
+      onRefresh();
+    } catch (err) {
+      setOpError(err instanceof Error ? err.message : "Failed to delete room.");
+      setDeletePending(false);
+      setDeleteConfirming(false);
+    }
+  };
+
+  const displayError = error ?? controlError ?? opError;
 
   return (
     <>
@@ -204,9 +259,25 @@ export function RoomCard({ room, loading, error, onRefresh }: RoomCardProps) {
                   : "bg-zinc-600"
               }`}
             />
-            <h2 className="font-semibold text-sm text-zinc-100 truncate">
-              {room?.name ?? "—"}
-            </h2>
+            {isRenaming ? (
+              <input
+                ref={renameInputRef}
+                value={renameValue}
+                onChange={(e) => setRenameValue(e.target.value)}
+                onBlur={handleRenameSubmit}
+                onKeyDown={handleRenameKeyDown}
+                disabled={renamePending}
+                className="font-semibold text-sm text-zinc-100 bg-transparent border-b border-zinc-500 focus:outline-none focus:border-zinc-300 min-w-0 w-32 disabled:opacity-60"
+              />
+            ) : (
+              <h2
+                className={`font-semibold text-sm text-zinc-100 truncate ${room ? "cursor-pointer hover:text-zinc-300 transition-colors" : ""}`}
+                onClick={room ? startRenaming : undefined}
+                title={room ? "Click to rename" : undefined}
+              >
+                {room?.name ?? "—"}
+              </h2>
+            )}
             {room && (
               <span className="text-xs text-zinc-600 shrink-0">
                 {room.devices.length}
@@ -255,7 +326,7 @@ export function RoomCard({ room, loading, error, onRefresh }: RoomCardProps) {
               <line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
             <p className="text-xs text-red-300 flex-1">{displayError}</p>
-            <button onClick={clearError} className="text-red-500 hover:text-red-300 transition-colors shrink-0">
+            <button onClick={() => { clearError(); setOpError(null); }} className="text-red-500 hover:text-red-300 transition-colors shrink-0">
               <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
@@ -265,7 +336,7 @@ export function RoomCard({ room, loading, error, onRefresh }: RoomCardProps) {
         )}
 
         {/* Device list */}
-        <div className="px-4 py-3 space-y-1.5">
+        <div className="px-4 pt-3 space-y-1.5">
           {loading && !room && (
             <div className="space-y-1.5 animate-pulse">
               {[1, 2, 3].map((i) => (
@@ -290,6 +361,57 @@ export function RoomCard({ room, loading, error, onRefresh }: RoomCardProps) {
               />
             ))}
         </div>
+
+        {/* Delete room */}
+        {room && (
+          <div className="px-4 pb-3 pt-2 border-t border-zinc-800/50 mt-1">
+            {deleteConfirming ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-zinc-400 flex-1 truncate">Delete "{room.name}"?</span>
+                <button
+                  onClick={() => setDeleteConfirming(false)}
+                  className="px-2 py-1 text-xs rounded-lg bg-zinc-800 text-zinc-400 hover:bg-zinc-700 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={deletePending}
+                  className="flex items-center gap-1 px-2 py-1 text-xs rounded-lg bg-red-900/50 text-red-400 hover:bg-red-900 disabled:opacity-50 transition-colors"
+                >
+                  {deletePending && (
+                    <svg className="animate-spin" xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                    </svg>
+                  )}
+                  {deletePending ? "Deleting…" : "Delete"}
+                </button>
+              </div>
+            ) : (
+              <div className="relative group/delete">
+                <button
+                  onClick={() => setDeleteConfirming(true)}
+                  disabled={room.devices.length > 0}
+                  className="w-full flex items-center justify-center gap-1.5 py-1.5 text-xs rounded-lg text-zinc-600 hover:text-red-400 hover:bg-zinc-800/60 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-zinc-600 transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                    <path d="M10 11v6" />
+                    <path d="M14 11v6" />
+                    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                  </svg>
+                  Delete Room
+                </button>
+                {room.devices.length > 0 && (
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs bg-zinc-800 border border-zinc-700 text-zinc-400 rounded-lg whitespace-nowrap pointer-events-none opacity-0 group-hover/delete:opacity-100 transition-opacity z-10">
+                    Remove all devices first
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {detailOpen && room && (
