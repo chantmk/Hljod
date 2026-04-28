@@ -214,11 +214,13 @@ export function DeviceExpandedPanel({ device, roomId, onRefresh }: Props) {
       </button>
 
       {/* ── Brightness ── */}
-      <BrightnessSlider
-        value={device.brightness ?? 50}
-        disabled={isDisabled || !isOn}
-        onChange={setBrightness}
-      />
+      {device.brightness !== null && device.brightness !== undefined && (
+        <BrightnessSlider
+          value={device.brightness}
+          disabled={isDisabled || !isOn}
+          onChange={setBrightness}
+        />
+      )}
 
       {/* ── Temperature ── */}
       <TemperatureSlider

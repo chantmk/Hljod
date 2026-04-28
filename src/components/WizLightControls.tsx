@@ -17,7 +17,7 @@ export function WizLightControls({ roomId, devices, onRefresh }: WizLightControl
 
   const isOn = devices.some((d) => d.is_on);
   const first = devices[0];
-  const brightness = first?.brightness ?? 50;
+  const brightness = first?.brightness ?? null;
   const colorTemp = first?.color_temp ?? 4000;
   const color = {
     r: first?.r ?? 255,
@@ -29,11 +29,13 @@ export function WizLightControls({ roomId, devices, onRefresh }: WizLightControl
 
   return (
     <>
-      <BrightnessSlider
-        value={brightness}
-        disabled={isDisabled || !isOn}
-        onChange={setBrightness}
-      />
+      {brightness !== null && (
+        <BrightnessSlider
+          value={brightness}
+          disabled={isDisabled || !isOn}
+          onChange={setBrightness}
+        />
+      )}
 
       <div className="border-t border-zinc-800" />
 
